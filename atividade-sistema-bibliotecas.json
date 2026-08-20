@@ -1,0 +1,214 @@
+{
+  "projeto": {
+    "nome": "Sistema de Biblioteca",
+    "objetivo": "Modelagem e arquitetura de dados baseada em documentos para MongoDB",
+    "modelo": "Document-oriented"
+  },
+  "entidades_principais": [
+    "livros",
+    "autores",
+    "usuarios",
+    "emprestimos"
+  ],
+  "colecoes_isoladas": {
+    "livros": "Entidade independente; possui ciclo de vida e consultas próprias.",
+    "autores": "Entidade independente; um autor pode estar associado a vários livros.",
+    "usuarios": "Entidade independente; possui dados cadastrais e histórico de empréstimos.",
+    "emprestimos": "Entidade independente; representa uma operação e precisa preservar histórico."
+  },
+  "embedded": {
+    "principio": "Usar quando o dado pertence fortemente ao documento pai, é pequeno e normalmente é acessado junto.",
+    "exemplos": {
+      "livros.metadados": {
+        "paginas": 320,
+        "idioma": "pt-BR",
+        "editora": "Editora Exemplo",
+        "ano_publicacao": 2024
+      },
+      "livros.exemplares": [
+        {
+          "codigo": "EX-001",
+          "status": "disponivel",
+          "localizacao": "Estante A-03"
+        }
+      ],
+      "usuarios.endereco": {
+        "logradouro": "Rua Exemplo",
+        "numero": 100,
+        "cidade": "Marilia",
+        "estado": "SP",
+        "cep": "17500000"
+      },
+      "emprestimos.datas": {
+        "emprestado_em": "2026-08-19T10:00:00Z",
+        "previsto_para": "2026-09-02T10:00:00Z",
+        "devolvido_em": null
+      }
+    }
+  },
+  "references": {
+    "principio": "Usar quando a entidade relacionada possui identidade própria, pode ser compartilhada ou precisa ser atualizada independentemente.",
+    "exemplos": {
+      "livros.autor_ids": [
+        "autor_001",
+        "autor_002"
+      ],
+      "emprestimos.usuario_id": "usuario_001",
+      "emprestimos.livro_id": "livro_001"
+    }
+  },
+  "desnormalizacao": {
+    "principio": "Duplicar pequenas informações quando isso melhorar leitura, desempenho ou preservação histórica, mantendo uma fonte oficial.",
+    "exemplos": {
+      "emprestimos.usuario_nome": "Paulo",
+      "emprestimos.livro_titulo": "Dom Casmurro",
+      "livros.autor_nomes": [
+        "Machado de Assis"
+      ]
+    }
+  },
+  "modelos_documentos": {
+    "livros": {
+      "_id": "livro_001",
+      "titulo": "Dom Casmurro",
+      "isbn": "9788535914849",
+      "autor_ids": [
+        "autor_001"
+      ],
+      "autor_nomes": [
+        "Machado de Assis"
+      ],
+      "categoria": "Romance",
+      "metadados": {
+        "paginas": 320,
+        "idioma": "pt-BR",
+        "editora": "Editora Exemplo",
+        "ano_publicacao": 2024
+      },
+      "exemplares": [
+        {
+          "codigo": "EX-001",
+          "status": "disponivel",
+          "localizacao": "Estante A-03"
+        }
+      ],
+      "ativo": true
+    },
+    "autores": {
+      "_id": "autor_001",
+      "nome": "Machado de Assis",
+      "biografia": "Autor brasileiro.",
+      "nacionalidade": "Brasileiro"
+    },
+    "usuarios": {
+      "_id": "usuario_001",
+      "nome": "Paulo",
+      "email": "paulo@email.com",
+      "perfil": "leitor",
+      "status": "ativo",
+      "endereco": {
+        "logradouro": "Rua Exemplo",
+        "numero": 100,
+        "cidade": "Marilia",
+        "estado": "SP",
+        "cep": "17500000"
+      }
+    },
+    "emprestimos": {
+      "_id": "emprestimo_001",
+      "usuario_id": "usuario_001",
+      "usuario_nome": "Paulo",
+      "livro_id": "livro_001",
+      "livro_titulo": "Dom Casmurro",
+      "datas": {
+        "emprestado_em": "2026-08-19T10:00:00Z",
+        "previsto_para": "2026-09-02T10:00:00Z",
+        "devolvido_em": null
+      },
+      "status": "ativo"
+    }
+  },
+  "antipatterns": [
+    {
+      "nome": "Documento gigante",
+      "evitar": "Colocar todos os usuários, livros e empréstimos em um único documento.",
+      "motivo": "Crescimento excessivo, atualizações difíceis e baixa escalabilidade."
+    },
+    {
+      "nome": "Arrays ilimitados",
+      "evitar": "Guardar todo o histórico de empréstimos dentro do usuário.",
+      "motivo": "O array cresce indefinidamente e pode tornar o documento pesado."
+    },
+    {
+      "nome": "Referenciar tudo",
+      "evitar": "Criar referências para dados pequenos que sempre são usados junto.",
+      "motivo": "Aumenta consultas e reduz as vantagens do modelo documental."
+    },
+    {
+      "nome": "Embutir entidades independentes",
+      "evitar": "Duplicar o documento completo do autor dentro de cada livro.",
+      "motivo": "Alterações exigiriam atualizar vários documentos e podem causar inconsistência."
+    },
+    {
+      "nome": "Desnormalização sem estratégia",
+      "evitar": "Duplicar dados sem definir uma fonte oficial.",
+      "motivo": "Pode gerar informações divergentes."
+    },
+    {
+      "nome": "Ausência de índices",
+      "evitar": "Consultar frequentemente ISBN, email, usuario_id, livro_id e status sem índices.",
+      "motivo": "Consultas podem ficar lentas com o crescimento da base."
+    }
+  ],
+  "indices_recomendados": [
+    {
+      "colecao": "livros",
+      "campo": "isbn",
+      "tipo": "unique"
+    },
+    {
+      "colecao": "usuarios",
+      "campo": "email",
+      "tipo": "unique"
+    },
+    {
+      "colecao": "emprestimos",
+      "campo": "usuario_id",
+      "tipo": "index"
+    },
+    {
+      "colecao": "emprestimos",
+      "campo": "livro_id",
+      "tipo": "index"
+    },
+    {
+      "colecao": "emprestimos",
+      "campo": "status",
+      "tipo": "index"
+    }
+  ],
+  "resumo_decisao": {
+    "colecoes_isoladas": [
+      "livros",
+      "autores",
+      "usuarios",
+      "emprestimos"
+    ],
+    "embedded": [
+      "livros.metadados",
+      "livros.exemplares",
+      "usuarios.endereco",
+      "emprestimos.datas"
+    ],
+    "references": [
+      "livros.autor_ids",
+      "emprestimos.usuario_id",
+      "emprestimos.livro_id"
+    ],
+    "dados_desnormalizados": [
+      "emprestimos.usuario_nome",
+      "emprestimos.livro_titulo",
+      "livros.autor_nomes"
+    ]
+  }
+}
